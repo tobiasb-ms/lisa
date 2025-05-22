@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Any, Type, cast
 
 from azure.identity import (
+    AzureCliCredential,
     CertificateCredential,
     ClientAssertionCredential,
     ClientSecretCredential,
@@ -167,10 +168,11 @@ class AzureDefaultCredential(AzureCredential):
         return AzureCredential with related schema
         """
         additional_tenants = ["*"] if self._allow_all_tenants else None
-        return DefaultAzureCredential(
-            cloud=self._cloud,
-            additionally_allowed_tenants=additional_tenants,
-        )
+        return AzureCliCredential(additionally_allowed_tenants=additional_tenants)
+        # return DefaultAzureCredential(
+        #     cloud=self._cloud,
+        #     additionally_allowed_tenants=additional_tenants,
+        # )
 
     def _get_key(self) -> str:
         return f"{self._credential_type}_{self._client_id}_{self._tenant_id}"
