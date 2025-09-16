@@ -15,7 +15,7 @@ from lisa import (
     simple_requirement,
 )
 from lisa.operating_system import CBLMariner, Posix
-from lisa.tools import OpenSSL
+from lisa.tools import Git, OpenSSL
 from lisa.util import SkippedException
 
 
@@ -45,6 +45,7 @@ class OpenSSLTestSuite(TestSuite):
     def verify_openssl_basic(self, log: Logger, node: Node) -> None:
         """This function tests the basic functionality of
         OpenSSL by calling helper functions"""
+        node.tools[OpenSSL].tobiasb_dump_providers()
         self._openssl_test_encrypt_decrypt(log, node)
         self._openssl_test_sign_verify(log, node)
 
@@ -66,6 +67,7 @@ class OpenSSLTestSuite(TestSuite):
             raise SkippedException(
                 "Go system crypto tests are only supported on CBLMariner 3.0. or later"
             )
+        node.tools[OpenSSL].tobiasb_dump_providers()
         # installs go dependencies for tests
         posix_os = cast(Posix, node.os)
         posix_os.install_packages(
@@ -112,7 +114,88 @@ class OpenSSLTestSuite(TestSuite):
         speed measures complete in a reasonable time frame.
         """
 
+        node.tools[OpenSSL].tobiasb_dump_providers()
         node.tools[OpenSSL].speed(sec=1)
+
+    @TestCaseMetadata(
+        description="""
+        Run dotnet crypto tests.
+        """,
+        priority=3,
+        timeout=3600,  # 1 hour
+        requirement=simple_requirement(
+            supported_os=[CBLMariner],
+            min_core_count=16,
+            min_memory_mb=64 * 1024,  # 64 GB
+        ),
+    )
+    def tobiasb_verify_dotnet_crypto(self, node: Node) -> None:
+        """
+        Runs dotnet crypto tests.
+        Based on https://gist.github.com/vcsjones/6c0bddcc6bbe721a5f43673359552f67
+        """
+        if float(node.os.information.release) < 3.0:
+            raise SkippedException(
+                "Go system crypto tests are only supported on CBLMariner 3.0. or later"
+            )
+
+        node.tools[OpenSSL].tobiasb_dump_providers()
+        # installs dotnet crypto dependencies for tests
+        posix_os = cast(Posix, node.os)
+        # git installed via tool
+        posix_os.install_packages(
+            ["ca-certificates", "ninja-build", "tar", "awk", "curl", "cmake",
+                "make", "g++", "glibc-devel", "gcc", "gcc-c++", "kernel-headers"]
+        )
+
+        # Get the runtime repo.
+        work_dir = node.get_working_path_with_required_space(
+            required_size_in_gb=3)
+        work_dir_path = node.get_pure_path(work_dir)
+        runtime_code_path = node.tools[Git].clone(
+            "https://github.com/dotnet/runtime.git", work_dir_path)
+
+        # Get dependencies
+        node.execute(
+            "./eng/common/native/install-dependencies.sh",
+            cwd=runtime_code_path,
+            sudo=True,
+            expected_exit_code=0,
+            expected_exit_code_failure_message=(
+                "Failed to get dotnet runtime build dependencies."
+            ),
+        )
+
+        # Build the runtime
+        node.execute(
+            "./build.sh -rc release -s clr+libs",
+            cwd=runtime_code_path,
+            expected_exit_code=0,
+            expected_exit_code_failure_message=(
+                "Failed to build dotnet runtime."
+            ),
+            timeout=3600,  # 1 hour
+        )
+
+        # Core Crypto Tests
+        node.execute(
+            "./dotnet.sh test src/libraries/System.Security.Cryptography/tests",
+            cwd=runtime_code_path,
+            expected_exit_code=0,
+            expected_exit_code_failure_message=(
+                "Dotnet core crypto tests failed."
+            ),
+        )
+
+        # Networking/TLS tests.
+        node.execute(
+            "./dotnet.sh test src/libraries/System.Net.Security/tests/FunctionalTests",
+            cwd=runtime_code_path,
+            expected_exit_code=0,
+            expected_exit_code_failure_message=(
+                "Dotnet networking/TLS tests failed."
+            ),
+        )
 
     def _openssl_test_encrypt_decrypt(self, log: Logger, node: Node) -> None:
         """
