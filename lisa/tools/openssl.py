@@ -25,6 +25,19 @@ class OpenSSL(Tool):
     def can_install(self) -> bool:
         return True
 
+    def tobiasb_dump_providers(self) -> str:
+        """
+        Dumps the available providers in OpenSSL.
+        Returns the output as a string.
+        """
+        result = self.run(
+            "list -providers -verbose",
+            expected_exit_code=0,
+            expected_exit_code_failure_message=(
+                "Failed to list OpenSSL providers."),
+        )
+        return result.stdout.strip()
+
     def encrypt(
         self,
         plaintext: str,
@@ -39,7 +52,8 @@ class OpenSSL(Tool):
         return self._run_with_piped_input(
             plaintext,
             f"enc -{algorithm} -K '{hex_key}' -iv '{hex_iv}' -base64 -A",
-            expected_exit_code_failure_message=("Failed to encrypt data with OpenSSL."),
+            expected_exit_code_failure_message=(
+                "Failed to encrypt data with OpenSSL."),
         )
 
     def decrypt(
@@ -58,7 +72,8 @@ class OpenSSL(Tool):
         return self._run_with_piped_input(
             ciphertext,
             f"enc -d -{algorithm} -K '{hex_key}' -iv '{hex_iv}' -base64 -A",
-            expected_exit_code_failure_message=("Failed to decrypt data with OpenSSL."),
+            expected_exit_code_failure_message=(
+                "Failed to decrypt data with OpenSSL."),
         )
 
     def create_key_pair(self, algorithm: str = "RSA") -> Tuple[str, str]:
