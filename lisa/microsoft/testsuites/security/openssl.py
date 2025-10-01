@@ -136,7 +136,7 @@ class OpenSSLTestSuite(TestSuite):
         """
         if float(node.os.information.release) < 3.0:
             raise SkippedException(
-                "Go system crypto tests are only supported on CBLMariner 3.0. or later"
+                "Dotnet system crypto tests are only supported on CBLMariner 3.0. or later"
             )
 
         node.tools[OpenSSL].tobiasb_dump_providers()
@@ -144,16 +144,28 @@ class OpenSSLTestSuite(TestSuite):
         posix_os = cast(Posix, node.os)
         # git installed via tool
         posix_os.install_packages(
-            ["ca-certificates", "ninja-build", "tar", "awk", "curl", "cmake",
-                "make", "g++", "glibc-devel", "gcc", "gcc-c++", "kernel-headers"]
+            [
+                "ca-certificates",
+                "ninja-build",
+                "tar",
+                "awk",
+                "curl",
+                "cmake",
+                "make",
+                "g++",
+                "glibc-devel",
+                "gcc",
+                "gcc-c++",
+                "kernel-headers",
+            ]
         )
 
         # Get the runtime repo.
-        work_dir = node.get_working_path_with_required_space(
-            required_size_in_gb=3)
+        work_dir = node.get_working_path_with_required_space(required_size_in_gb=3)
         work_dir_path = node.get_pure_path(work_dir)
         runtime_code_path = node.tools[Git].clone(
-            "https://github.com/dotnet/runtime.git", work_dir_path)
+            "https://github.com/dotnet/runtime.git", work_dir_path
+        )
 
         # Get dependencies
         node.execute(
@@ -171,9 +183,7 @@ class OpenSSLTestSuite(TestSuite):
             "./build.sh -rc release -s clr+libs",
             cwd=runtime_code_path,
             expected_exit_code=0,
-            expected_exit_code_failure_message=(
-                "Failed to build dotnet runtime."
-            ),
+            expected_exit_code_failure_message=("Failed to build dotnet runtime."),
             timeout=3600,  # 1 hour
         )
 
@@ -182,9 +192,7 @@ class OpenSSLTestSuite(TestSuite):
             "./dotnet.sh test src/libraries/System.Security.Cryptography/tests",
             cwd=runtime_code_path,
             expected_exit_code=0,
-            expected_exit_code_failure_message=(
-                "Dotnet core crypto tests failed."
-            ),
+            expected_exit_code_failure_message=("Dotnet core crypto tests failed."),
         )
 
         # Networking/TLS tests.
@@ -192,9 +200,7 @@ class OpenSSLTestSuite(TestSuite):
             "./dotnet.sh test src/libraries/System.Net.Security/tests/FunctionalTests",
             cwd=runtime_code_path,
             expected_exit_code=0,
-            expected_exit_code_failure_message=(
-                "Dotnet networking/TLS tests failed."
-            ),
+            expected_exit_code_failure_message=("Dotnet networking/TLS tests failed."),
         )
 
     def _openssl_test_encrypt_decrypt(self, log: Logger, node: Node) -> None:
