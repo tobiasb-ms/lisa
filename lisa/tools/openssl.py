@@ -32,6 +32,7 @@ class OpenSSL(Tool):
         """
         result = self.run(
             "list -providers -verbose",
+            force_run=True,
             expected_exit_code=0,
             expected_exit_code_failure_message=(
                 "Failed to list OpenSSL providers."),
