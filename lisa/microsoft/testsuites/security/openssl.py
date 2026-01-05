@@ -193,6 +193,7 @@ class OpenSSLTestSuite(TestSuite):
             cwd=runtime_code_path,
             expected_exit_code=0,
             expected_exit_code_failure_message=("Dotnet core crypto tests failed."),
+            timeout=3600,  # 1 hour
         )
 
         # Networking/TLS tests.
@@ -201,6 +202,7 @@ class OpenSSLTestSuite(TestSuite):
             cwd=runtime_code_path,
             expected_exit_code=0,
             expected_exit_code_failure_message=("Dotnet networking/TLS tests failed."),
+            timeout=3600,  # 1 hour
         )
 
     def _openssl_test_encrypt_decrypt(self, log: Logger, node: Node) -> None:
