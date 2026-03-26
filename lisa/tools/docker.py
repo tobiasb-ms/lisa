@@ -223,7 +223,10 @@ class Docker(Tool):
                     ["docker-ce", "docker-ce-cli", "containerd.io"]
                 )
         elif isinstance(self.node.os, CBLMariner):
-            self.node.os.install_packages(["moby-engine", "moby-cli"])
+            if self.node.os.information.release <= "3.0":
+                self.node.os.install_packages(["moby-engine", "moby-cli"])
+            else:
+                self.node.os.install_packages(["moby-engine", "docker-cli"])
         elif isinstance(self.node.os, Suse) or isinstance(self.node.os, Fedora):
             self.node.os.install_packages(["docker"])
         elif isinstance(self.node.os, BSD):
